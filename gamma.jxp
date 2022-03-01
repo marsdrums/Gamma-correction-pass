@@ -1,0 +1,11 @@
+<jitterpass>
+	<pass name="gamma">
+		<bind name="gamma_correction" param="gamma_correction" default="1" />
+		<bind name="tonemapping" param="tonemapping" default="1" />
+		<bind name="exposure" param="exposure" default="1." />
+		<bind name="max_white" param="max_white" default="3." />
+		<subpass file="gamma.jxs" >
+			<input source="COLOR" />
+		</subpass>
+	</pass>
+</jitterpass>	

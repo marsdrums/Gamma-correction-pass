@@ -1,0 +1,172 @@
+<jittershader name="default">
+	<description>Default Slab </description>
+	<param name="tex0" type="int" default="0" />
+	<param name="MVP" type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="textureMatrix0" type="mat4" state="TEXTURE0_MATRIX" />
+	<param name="pos" type="vec3" state="POSITION" />
+	<param name="uv" type="vec2" state="TEXCOORD" />
+	<param name="tonemapping" type="int" default="1" />
+	<param name="gamma_correction" type="int" default="1" />
+	<param name="exposure" type="float" default="1." />
+	<param name="max_white" type="float" default="3." />
+
+	<language name="glsl" version="1.5">
+		<bind param="tex0" program="fp" />
+		<bind param="MVP" program="vp" />
+		<bind param="textureMatrix0" program="vp" />
+		<bind param="pos" program="vp" />
+		<bind param="uv" program="vp" />
+		<bind param="gamma_correction" program="fp" />
+		<bind param="tonemapping" program="fp" />
+		<bind param="exposure" program="fp" />
+		<bind param="max_white" program="fp" />
+		<program name="vp" type="vertex"  >
+<![CDATA[
+	#version 330 core
+	
+	in vec3 pos;
+	in vec2 uv;
+	out jit_PerVertex {
+		smooth vec2 uv;
+	} jit_out;
+	uniform mat4 MVP;
+	uniform mat4 textureMatrix0;
+	
+	void main(void) {
+		gl_Position = MVP*vec4(pos, 1.);
+		jit_out.uv = vec2(textureMatrix0*vec4(uv, 0., 1.));
+	}
+]]>
+</program>
+
+<program name="fp" type="fragment"  >
+<![CDATA[
+	#version 330 core
+	
+	in jit_PerVertex {
+		smooth vec2 uv;
+	} jit_in;
+	layout (location = 0) out vec4 col;
+	
+	uniform sampler2DRect tex0;
+	uniform int gamma_correction, tonemapping;
+	uniform float exposure, max_white;
+
+
+// Code written by Stephen Hill:
+//https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
+// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
+const mat3 ACESInputMat = 	mat3( 	vec3(0.59719, 0.35458, 0.04823),
+									vec3(0.07600, 0.90834, 0.01566),
+									vec3(0.02840, 0.13383, 0.83777)
+								);
+
+// ODT_SAT => XYZ => D60_2_D65 => sRGB
+const mat3 ACESOutputMat = 	mat3( 	vec3(1.60475, -0.53108, -0.07367),
+									vec3(-0.10208,  1.10813, -0.00605),
+									vec3(-0.00327, -0.07276,  1.07602)
+								);
+
+
+vec3 RRTAndODTFit(vec3 v)
+{
+    vec3 a = v * (v + 0.0245786f) - 0.000090537f;
+    vec3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
+}
+
+vec3 acesFitted(vec3 x)
+{
+    x = ACESInputMat * x;
+
+    // Apply RRT and ODT
+    x = RRTAndODTFit(x);
+
+    x = ACESOutputMat * x;
+
+    // Clamp to [0, 1]
+    x = clamp(x, vec3(0.), vec3(1.));
+
+    return x;
+}
+
+
+vec3 aces(vec3 x)
+{
+	//from: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+	
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.), vec3(1.));
+}
+
+vec3 reinhard(vec3 v)
+{
+    vec3 numerator = v * (1.0f + (v / vec3(max_white * max_white)));
+    return numerator / (1.0f + v);
+}
+
+vec3 reinhard_jodie(vec3 v)
+{
+    float l = dot(v, vec3(0.2126, 0.7152, 0.0722));
+    float max_white_squared = max_white*max_white;
+    vec3 tv = v / (1. + v);
+    return mix(v / (1. + l), tv, tv);
+}
+
+vec3 uncharted2_tonemap_partial(vec3 x)
+{
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+
+vec3 uncharted2(vec3 v)
+{
+    float exposure_bias = 2.0;
+    vec3 curr = uncharted2_tonemap_partial(v * exposure_bias);
+
+    vec3 W = vec3(11.2);
+    vec3 white_scale = vec3(1.0) / uncharted2_tonemap_partial(W);
+    return curr * white_scale;
+}
+
+vec3 lin2sRGB(vec3 x)
+{
+	return pow(x, vec3(0.454545454545));
+}
+vec3 lin2sRGB_exact(vec3 x)
+//accurate gamma correction taken from:
+//http://renderwonk.com/blog/index.php/archive/adventures-with-gamma-correct-rendering/
+{
+ 	return vec3( 	x.x <= 0.00031308 ? x.x*12.92 : pow(x.x*1.055, 0.416666666666) - 0.055,
+ 					x.y <= 0.00031308 ? x.y*12.92 : pow(x.y*1.055, 0.416666666666) - 0.055,
+ 					x.z <= 0.00031308 ? x.z*12.92 : pow(x.z*1.055, 0.416666666666) - 0.055
+ 				);
+}
+
+void main(void) {
+
+ 	col 	= 	texture(tex0, jit_in.uv);
+	col.rgb *= 	exposure;
+	col.rgb = 	tonemapping == 1 ? 	reinhard(col.rgb) 		: col.rgb;
+	col.rgb = 	tonemapping == 2 ? 	reinhard_jodie(col.rgb) : col.rgb;
+	col.rgb = 	tonemapping == 3 ? 	aces(col.rgb) 			: col.rgb;
+	col.rgb =  	tonemapping == 4 ?  uncharted2(col.rgb) 	: col.rgb;
+
+	col.rgb =  	gamma_correction == 1 ? lin2sRGB(col.rgb) 		: col.rgb;
+	col.rgb =  	gamma_correction == 2 ? lin2sRGB_exact(col.rgb) : col.rgb;
+
+
+}
+]]>
+		</program>
+	</language>
+</jittershader>
