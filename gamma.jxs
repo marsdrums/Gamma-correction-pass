@@ -55,7 +55,7 @@
 		smooth vec2 uv;
 		smooth vec2 uvNorm;
 	} jit_in;
-	layout (location = 0) out vec4 col;
+	layout (location = 0) out vec4 outCol;
 	
 	uniform sampler2DRect tex0;
 	uniform int gamma_correction, tonemapping, dithering, color_levels, show_clipped;
@@ -200,27 +200,30 @@ vec3 Dither_TriangleNoise(vec3 col) {
 
 void main(void) {
 
- 	col 	= 	texture(tex0, jit_in.uv);
-	col.rgb *= 	exposure;
-	col.rgb = 	tonemapping == 1 ? 	reinhard(col.rgb) 		: col.rgb;
-	col.rgb = 	tonemapping == 2 ? 	reinhard_jodie(col.rgb) : col.rgb;
-	col.rgb = 	tonemapping == 3 ? 	aces(col.rgb) 			: col.rgb;
-	col.rgb =  	tonemapping == 4 ?  uncharted2(col.rgb) 	: col.rgb;
+ 	vec3 	col = 	texture(tex0, jit_in.uv).rgb;
 
-	col.rgb =  	gamma_correction == 1 ? lin2sRGB(col.rgb) 		: col.rgb;
-	col.rgb =  	gamma_correction == 2 ? lin2sRGB_exact(col.rgb) : col.rgb;
+			col *= 	exposure;
+			col = 	tonemapping == 1 ? 	reinhard(col) 		: col;
+			col = 	tonemapping == 2 ? 	reinhard_jodie(col) : col;
+			col = 	tonemapping == 3 ? 	aces(col) 			: col;
+			col =  	tonemapping == 4 ?  uncharted2(col) 	: col;
+
+			col =  	gamma_correction == 1 ? lin2sRGB(col) 		: col;
+			col =  	gamma_correction == 2 ? lin2sRGB_exact(col) : col;
 
 
-	col.rgb =  	dithering == 1 ? Dither_Uniform(col.rgb) 				: col.rgb;
-	col.rgb =  	dithering == 2 ? Dither_Interleaved(col.rgb) 			: col.rgb;
-	col.rgb =  	dithering == 3 ? Dither_Vlachos(col.rgb) 				: col.rgb;
-	col.rgb =  	dithering == 4 ? Dither_Vlachos_TrianglePDF(col.rgb) 	: col.rgb;
-	col.rgb =  	dithering == 5 ? Dither_TriangleNoise(col.rgb) 			: col.rgb;
-	col.rgb = 	floor(col.rgb * color_levels + vec3(0.5)) / color_levels;
+			col =  	dithering == 1 ? Dither_Uniform(col) 				: col;
+			col =  	dithering == 2 ? Dither_Interleaved(col) 			: col;
+			col =  	dithering == 3 ? Dither_Vlachos(col) 				: col;
+			col =  	dithering == 4 ? Dither_Vlachos_TrianglePDF(col) 	: col;
+			col =  	dithering == 5 ? Dither_TriangleNoise(col) 			: col;
+			col = 	floor(col * color_levels + vec3(0.5)) / color_levels;
 
-	col.rgb = 	show_clipped == 1 ? 
-					(col.r >= 1. || col.g >= 1. || col.b >= 1.) ? vec3(1., 0., 0.) : col.rgb
-				: col.rgb;
+			col = 	show_clipped == 1 ? 
+							(col.r >= 1. || col.g >= 1. || col.b >= 1.) ? vec3(1., 0., 0.) : col
+					: col;
+
+			outCol = vec4(col, 1.);
 
 
 }
