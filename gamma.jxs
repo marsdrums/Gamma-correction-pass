@@ -221,7 +221,7 @@ void main(void) {
 	col.rgb =  	dithering == 3 ? Dither_Vlachos(col.rgb) 				: col.rgb;
 	col.rgb =  	dithering == 4 ? Dither_Vlachos_TrianglePDF(col.rgb) 	: col.rgb;
 	col.rgb =  	dithering == 5 ? Dither_TriangleNoise(col.rgb) 			: col.rgb;
-	col.rgb = 	dithering >  0 ? floor(col.rgb * color_levels + vec3(0.5)) / color_levels : col.rgb;
+	col.rgb = 	floor(col.rgb * color_levels + vec3(0.5)) / color_levels;
 
 
 }
