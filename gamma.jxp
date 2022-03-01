@@ -6,6 +6,7 @@
 		<bind name="exposure" param="exposure" default="1." />
 		<bind name="max_white" param="max_white" default="3." />
 		<bind name="color_levels" param="color_levels" default="256" />
+		<bind name="show_clipped" param="show_clipped" default="0" />
 		<subpass file="gamma.jxs" >
 			<input source="COLOR" />
 		</subpass>

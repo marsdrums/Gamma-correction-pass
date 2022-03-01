@@ -11,6 +11,7 @@
 	<param name="exposure" type="float" default="1." />
 	<param name="max_white" type="float" default="3." />
 	<param name="color_levels" type="int" default="256" />
+	<param name="show_clipped" type="int" default="0" />
 
 	<language name="glsl" version="1.5">
 		<bind param="tex0" program="fp" />
@@ -24,6 +25,7 @@
 		<bind param="exposure" program="fp" />
 		<bind param="max_white" program="fp" />
 		<bind param="color_levels" program="fp" />
+		<bind param="show_clipped" program="fp" />
 		<program name="vp" type="vertex"  >
 <![CDATA[
 	#version 330 core
@@ -56,13 +58,12 @@
 	layout (location = 0) out vec4 col;
 	
 	uniform sampler2DRect tex0;
-	uniform int gamma_correction, tonemapping, dithering, color_levels;
+	uniform int gamma_correction, tonemapping, dithering, color_levels, show_clipped;
 	uniform float exposure, max_white;
 
 
 //====================TONE-MAPPING====================//
-vec3 aces(vec3 x)
-{
+vec3 aces(vec3 x){
 	//from: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 	
     float a = 2.51;
@@ -73,14 +74,12 @@ vec3 aces(vec3 x)
     return clamp((x*(a*x+b))/(x*(c*x+d)+e), vec3(0.), vec3(1.));
 }
 
-vec3 reinhard(vec3 v)
-{
+vec3 reinhard(vec3 v){
     vec3 numerator = v * (1.0f + (v / vec3(max_white * max_white)));
     return numerator / (1.0f + v);
 }
 
-vec3 reinhard_jodie(vec3 v)
-{
+vec3 reinhard_jodie(vec3 v){
 	// from: https://www.shadertoy.com/view/4dBcD1
     float l = dot(v, vec3(0.2126, 0.7152, 0.0722));
     float max_white_squared = max_white*max_white;
@@ -88,8 +87,7 @@ vec3 reinhard_jodie(vec3 v)
     return mix(v / (1. + l), tv, tv);
 }
 
-vec3 uncharted2_tonemap_partial(vec3 x)
-{
+vec3 uncharted2_tonemap_partial(vec3 x){
     float A = 0.15;
     float B = 0.50;
     float C = 0.10;
@@ -99,8 +97,7 @@ vec3 uncharted2_tonemap_partial(vec3 x)
     return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-vec3 uncharted2(vec3 v)
-{
+vec3 uncharted2(vec3 v){
 	//from: https://64.github.io/tonemapping/
     float exposure_bias = 2.0;
     vec3 curr = uncharted2_tonemap_partial(v * exposure_bias);
@@ -111,12 +108,10 @@ vec3 uncharted2(vec3 v)
 }
 
 //====================GAMMA-CORRECTION====================//
-vec3 lin2sRGB(vec3 x)
-{
+vec3 lin2sRGB(vec3 x){
 	return pow(x, vec3(0.454545454545));
 }
-vec3 lin2sRGB_exact(vec3 x)
-{
+vec3 lin2sRGB_exact(vec3 x){
 	//accurate gamma correction taken from:
 	//http://renderwonk.com/blog/index.php/archive/adventures-with-gamma-correct-rendering/
  	return vec3( 	x.x <= 0.00031308 ? x.x*12.92 : pow(x.x*1.055, 0.416666666666) - 0.055,
@@ -124,7 +119,6 @@ vec3 lin2sRGB_exact(vec3 x)
  					x.z <= 0.00031308 ? x.z*12.92 : pow(x.z*1.055, 0.416666666666) - 0.055
  				);
 }
-
 
 
 //====================DITHERING====================//
@@ -203,6 +197,7 @@ vec3 Dither_TriangleNoise(vec3 col) {
     );
     return col.rgb + noise;
 }
+
 void main(void) {
 
  	col 	= 	texture(tex0, jit_in.uv);
@@ -222,6 +217,10 @@ void main(void) {
 	col.rgb =  	dithering == 4 ? Dither_Vlachos_TrianglePDF(col.rgb) 	: col.rgb;
 	col.rgb =  	dithering == 5 ? Dither_TriangleNoise(col.rgb) 			: col.rgb;
 	col.rgb = 	floor(col.rgb * color_levels + vec3(0.5)) / color_levels;
+
+	col.rgb = 	show_clipped == 1 ? 
+					(col.r >= 1. || col.g >= 1. || col.b >= 1.) ? vec3(1., 0., 0.) : col.rgb
+				: col.rgb;
 
 
 }
