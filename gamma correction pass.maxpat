@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 482.0, 209.0, 1210.0, 1273.0 ],
+		"rect" : [ 536.0, 232.0, 1210.0, 1273.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,18 @@
 		"subpatcher_template" : "",
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-11",
+					"linecount" : 55,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 628.5, 90.0, 458.0, 765.0 ],
+					"text" : "this pass implements tone mapping, gamma correction and dithering noise.\n\nTONE MAPPING\nTone mapping is a technique used in image processing and computer graphics to map one set of colors to another to approximate the appearance of high-dynamic-range images in a medium that has a more limited dynamic range\ntone mapping comes with these options:\n0: none\n1: Reinhard\n2: Reinhard-Jodie\n3: ACES film\n4: Uncharted 2\n\n- Reinhard is the standard tone mapping (finalcolor = color/(1 + color)). This mode responds to the parameter \"max_white\". \"max_white\" sets the luminosity value that gets tone-mapped to the output value 1. \n- Reinhard-Jodie is a variation on the Reinhard algorithm which creates a uniform tone mapping using the lumimance to trim the mapping for the individual RGB channels\n- ACES film (Academy Color Encoding System) and Unchardet 2 are tone mappers that emulate the response of real films\n\neach tone mapping function can be affected by the exposure parameter, that mutiplies the value of the color ater the tone mapping to easily boost the luminosity if the scene gets too dark. \nThe parameter \"show clipped\" enables a feature aimed at helping the user to find the optimal value for the parameter \"exposure\" and \"max_white\",  showing in red the parts of the image whose colors get clipped after the tone mapping process.\n\nGAMMA CORRECTION:\nThe idea of gamma correction is to apply the inverse of the monitor's gamma to the final output color before displaying to the monitor. This results in colors that better match the way the human eye percieves luminosity\nGamma correction comes with three options:\n0: none\n1: lin2sRGB pow\n2: lin2sRGB exact\n\n- lin2sRGB pow implements the gamma correction using a very common approximations (col^(1/2,2))\n- lin2sRGB exact implements the exact gamma correction computation\n\nDITHERING NOISE\nDither is an intentionally applied form of noise used to randomize quantization error, preventing large-scale patterns such as color banding.\nDithering noise comes with these modes:\n0: none\n1: uniform\n2: interleaved\n3: Vlachos\n4: Vlachos triangle\n5: triangle noise\n\nThe parameter called \"color_levels\" sets the amount of values that the color may assume (quantization)"
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-10",
 					"maxclass" : "toggle",
@@ -93,7 +105,7 @@
 						}
 ,
 						"classnamespace" : "box",
-						"rect" : [ -31958.0, -31915.0, 640.0, 480.0 ],
+						"rect" : [ 42.0, 85.0, 640.0, 480.0 ],
 						"bglocked" : 0,
 						"openinpresentation" : 0,
 						"default_fontsize" : 12.0,
@@ -121,7 +133,6 @@
 						"style" : "",
 						"subpatcher_template" : "",
 						"assistshowspatchername" : 0,
-						"visible" : 1,
 						"boxes" : [ 							{
 								"box" : 								{
 									"id" : "obj-71",
